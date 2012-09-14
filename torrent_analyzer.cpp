@@ -44,10 +44,12 @@ int main(int argc, char const* argv[])
 	using libtorrent::torrent_info;
 	using libtorrent::error_code;
 	using libtorrent::combine_path;
+	using libtorrent::announce_entry;
 
 	std::map<int, int> piece_sizes;
 	std::map<boost::uint64_t, int> torrent_sizes;
 	std::map<std::string, int> creators;
+	std::map<std::string, int> trackers;
 
 	if (argc != 2)
 	{
@@ -85,6 +87,15 @@ int main(int argc, char const* argv[])
 		boost::uint64_t torrent_size = ti.total_size();
 		torrent_sizes[torrent_size / (torrent_size_quantization*1024*1024)] += 1;
 
+		// tracker
+		std::vector<announce_entry> const& tr = ti.trackers();
+		for (std::vector<announce_entry>::const_iterator i = tr.begin()
+			, end(tr.end()); i != end; ++i)
+		{
+			std::string t= i->url;
+			trackers[t] += 1;
+		}
+
 		++num_torrents;
 	}
 
@@ -101,6 +112,24 @@ int main(int argc, char const* argv[])
 
 	for (std::map<std::string, int>::iterator i = creators.begin();
 		i != creators.end(); ++i)
+	{
+		sorted_list.push_back(std::make_pair(i->second, i->first));
+	}
+
+	std::sort(sorted_list.rbegin(), sorted_list.rend());
+
+	for (std::vector<std::pair<int, std::string> >::iterator i = sorted_list.begin();
+		i != sorted_list.end(); ++i)
+	{
+		printf("%s: %2.1f %%\n", i->second.c_str(), float(i->first) * 100.f / num_torrents);
+	}
+
+
+	fprintf(stderr, "\ntrackers:\n");
+	sorted_list.clear();
+
+	for (std::map<std::string, int>::iterator i = trackers.begin();
+		i != trackers.end(); ++i)
 	{
 		sorted_list.push_back(std::make_pair(i->second, i->first));
 	}
