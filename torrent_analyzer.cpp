@@ -72,7 +72,12 @@ int main(int argc, char const* argv[])
 		if (filename.substr(filename.size() - 8) != ".torrent") continue;
 
 		filename = combine_path(argv[1], filename);
-		torrent_info ti(filename);
+		torrent_info ti(filename, ec);
+		if (ec)
+		{
+			fprintf(stderr, "failed %s: %s\n", filename.c_str(), ec.message().c_str());
+			continue;
+		}
 
 		// piece size
 		int piece_size = ti.piece_length();
