@@ -126,7 +126,7 @@ int main(int argc, char const* argv[])
 	for (std::vector<std::pair<int, std::string> >::iterator i = sorted_list.begin();
 		i != sorted_list.end(); ++i)
 	{
-		printf("%s: %2.1f %%\n", i->second.c_str(), float(i->first) * 100.f / num_torrents);
+		printf("%2.1f %%: %s\n", float(i->first) * 100.f / num_torrents, i->second.c_str());
 	}
 
 
@@ -144,16 +144,17 @@ int main(int argc, char const* argv[])
 	for (std::vector<std::pair<int, std::string> >::iterator i = sorted_list.begin();
 		i != sorted_list.end(); ++i)
 	{
-		printf("%s: %2.1f %%\n", i->second.c_str(), float(i->first) * 100.f / num_torrents);
+		printf("%-4.4f %%: %s\n", float(i->first) * 100.f / num_torrents, i->second.c_str());
 	}
 
 	fprintf(stderr, "\ntotal size:\n");
 	for (std::map<boost::uint64_t, int>::iterator i = torrent_sizes.begin();
 		i != torrent_sizes.end(); ++i)
 	{
-		printf("%5" PRId64 " MiB: %-4.2f %%\n", i->first * torrent_size_quantization
-			+ (torrent_size_quantization / 2)
-			, float(i->second) * 100.f / num_torrents);
+		printf("%-4.4f %%: %5" PRId64 " MiB\n"
+			, float(i->second) * 100.f / num_torrents
+			, i->first * torrent_size_quantization
+				+ (torrent_size_quantization / 2));
 	}
 
 	fprintf(stderr, "\ntotal size (CDF):\n");
@@ -162,9 +163,9 @@ int main(int argc, char const* argv[])
 		i != torrent_sizes.end(); ++i)
 	{
 		total += float(i->second) * 100.f / num_torrents;
-		printf("%5" PRId64 " MiB: %-4.2f %%\n", i->first * torrent_size_quantization
-			+ (torrent_size_quantization / 2)
-			, total);
+		printf("%-4.4f %%: %5" PRId64 " MiB\n", total
+			, i->first * torrent_size_quantization
+			+ (torrent_size_quantization / 2));
 	}
 }
 
