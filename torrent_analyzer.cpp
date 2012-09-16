@@ -104,7 +104,7 @@ int main(int argc, char const* argv[])
 		++num_torrents;
 	}
 
-	fprintf(stderr, "\npiece sizes:\n");
+	printf("\npiece sizes:\n");
 
 	for (std::map<int, int>::iterator i = piece_sizes.begin();
 		i != piece_sizes.end(); ++i)
@@ -112,7 +112,7 @@ int main(int argc, char const* argv[])
 		printf("%5d kiB: %-2.1f %%\n", i->first / 1024, float(i->second) * 100.f / num_torrents);
 	}
 
-	fprintf(stderr, "\ncreator:\n");
+	printf("\ncreator:\n");
 	std::vector<std::pair<int, std::string> > sorted_list;
 
 	for (std::map<std::string, int>::iterator i = creators.begin();
@@ -130,7 +130,7 @@ int main(int argc, char const* argv[])
 	}
 
 
-	fprintf(stderr, "\ntrackers:\n");
+	printf("\ntrackers:\n");
 	sorted_list.clear();
 
 	for (std::map<std::string, int>::iterator i = trackers.begin();
@@ -147,7 +147,7 @@ int main(int argc, char const* argv[])
 		printf("%-4.4f %%: %s\n", float(i->first) * 100.f / num_torrents, i->second.c_str());
 	}
 
-	fprintf(stderr, "\ntotal size:\n");
+	printf("\ntotal size:\n");
 	for (std::map<boost::uint64_t, int>::iterator i = torrent_sizes.begin();
 		i != torrent_sizes.end(); ++i)
 	{
@@ -157,7 +157,7 @@ int main(int argc, char const* argv[])
 				+ (torrent_size_quantization / 2));
 	}
 
-	fprintf(stderr, "\ntotal size (CDF):\n");
+	printf("\ntotal size (CDF):\n");
 	float total = 0.f;
 	for (std::map<boost::uint64_t, int>::iterator i = torrent_sizes.begin();
 		i != torrent_sizes.end(); ++i)
