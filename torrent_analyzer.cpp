@@ -97,7 +97,8 @@ int main(int argc, char const* argv[])
 		for (std::vector<announce_entry>::const_iterator i = tr.begin()
 			, end(tr.end()); i != end; ++i)
 		{
-			std::string t= i->url;
+			std::string t = i->url;
+			if (t.size() > 5 && t.substr(0, 6) == "dht://") t = "dht://xxxxx";
 			trackers[t] += 1;
 		}
 
