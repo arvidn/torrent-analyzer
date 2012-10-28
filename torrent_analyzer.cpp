@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <string>
 
-enum { torrent_size_quantization = 200 };
+enum { torrent_size_quantization = 20 };
 
 int main(int argc, char const* argv[])
 {
@@ -105,17 +105,33 @@ int main(int argc, char const* argv[])
 		++num_torrents;
 	}
 
-	printf("\npiece sizes:\n");
-
+	printf("writing piece_size.dat\n");
+	FILE* f = fopen("piece_size.dat", "w+");
+	double sum = 0.0;
 	for (std::map<int, int>::iterator i = piece_sizes.begin();
 		i != piece_sizes.end(); ++i)
 	{
-		printf("%5d kiB: %-2.1f %%\n", i->first / 1024, float(i->second) * 100.f / num_torrents);
+		sum += i->second;
+		fprintf(f, "%5d\t%-2.1f\n", i->first / 1024, sum * 100. / num_torrents);
 	}
+	fclose(f);
 
-	printf("\ncreator:\n");
+	printf("writing size.dat\n");
+	f = fopen("size.dat", "w+");
+	sum = 0.0;
+	for (std::map<boost::uint64_t, int>::iterator i = torrent_sizes.begin();
+		i != torrent_sizes.end(); ++i)
+	{
+		sum += i->second;
+		fprintf(f, "%" PRId64 "\t%-4.4f\n"
+			, i->first * torrent_size_quantization + (torrent_size_quantization / 2)
+			, sum * 100. / num_torrents);
+	}
+	fclose(f);
+
+	printf("writing creator.txt\n");
+	f = fopen("creator.txt", "w+");
 	std::vector<std::pair<int, std::string> > sorted_list;
-
 	for (std::map<std::string, int>::iterator i = creators.begin();
 		i != creators.end(); ++i)
 	{
@@ -127,11 +143,13 @@ int main(int argc, char const* argv[])
 	for (std::vector<std::pair<int, std::string> >::iterator i = sorted_list.begin();
 		i != sorted_list.end(); ++i)
 	{
-		printf("%2.1f %%: %s\n", float(i->first) * 100.f / num_torrents, i->second.c_str());
+		fprintf(f, "%2.1f %%: %s\n", float(i->first) * 100.f / num_torrents, i->second.c_str());
 	}
+	fclose(f);
 
 
-	printf("\ntrackers:\n");
+	printf("writing tracker.txt\n");
+	f = fopen("tracker.txt", "w+");
 	sorted_list.clear();
 
 	for (std::map<std::string, int>::iterator i = trackers.begin();
@@ -145,29 +163,9 @@ int main(int argc, char const* argv[])
 	for (std::vector<std::pair<int, std::string> >::iterator i = sorted_list.begin();
 		i != sorted_list.end(); ++i)
 	{
-		printf("%-4.4f %%: %s\n", float(i->first) * 100.f / num_torrents, i->second.c_str());
+		fprintf(f, "%-4.4f %%: %s\n", float(i->first) * 100.f / num_torrents, i->second.c_str());
 	}
-
-	printf("\ntotal size:\n");
-	for (std::map<boost::uint64_t, int>::iterator i = torrent_sizes.begin();
-		i != torrent_sizes.end(); ++i)
-	{
-		printf("%-4.4f %%: %5" PRId64 " MiB\n"
-			, float(i->second) * 100.f / num_torrents
-			, i->first * torrent_size_quantization
-				+ (torrent_size_quantization / 2));
-	}
-
-	printf("\ntotal size (CDF):\n");
-	float total = 0.f;
-	for (std::map<boost::uint64_t, int>::iterator i = torrent_sizes.begin();
-		i != torrent_sizes.end(); ++i)
-	{
-		total += float(i->second) * 100.f / num_torrents;
-		printf("%-4.4f %%: %5" PRId64 " MiB\n", total
-			, i->first * torrent_size_quantization
-			+ (torrent_size_quantization / 2));
-	}
+	fclose(f);
 }
 
 
