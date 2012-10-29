@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <string>
 
-enum { torrent_size_quantization = 20 };
+enum { torrent_size_quantization = 5 };
 
 int main(int argc, char const* argv[])
 {
@@ -51,58 +51,62 @@ int main(int argc, char const* argv[])
 	std::map<std::string, int> creators;
 	std::map<std::string, int> trackers;
 
-	if (argc != 2)
+	if (argc < 2)
 	{
-		fprintf(stderr, "usage: torrent_analyzer <directory-with-torrent-files>\n");
+		fprintf(stderr, "usage: torrent_analyzer <directory-with-torrent-files> ...\n");
 		return 1;
 	}
 
-	error_code ec;
-	directory dir(argv[1], ec);
 	int num_torrents = 0;
 
 	int spin_cnt = 0;
 	char const* spinner = "/-\\|";
-	for (; !ec && !dir.done(); dir.next(ec))
+
+	for (int a = 1; a < argc; ++a)
 	{
-		fprintf(stderr, "\r%c", spinner[spin_cnt++]);
-		spin_cnt %= 4;
-		std::string filename = dir.file();
-		if (filename.size() < 9) continue;
-		if (filename.substr(filename.size() - 8) != ".torrent") continue;
-
-		filename = combine_path(argv[1], filename);
-		torrent_info ti(filename, ec);
-		if (ec)
+		error_code ec;
+		directory dir(argv[a], ec);
+		for (; !ec && !dir.done(); dir.next(ec))
 		{
-			fprintf(stderr, "failed %s: %s\n", filename.c_str(), ec.message().c_str());
-			continue;
+			fprintf(stderr, "\r%c", spinner[spin_cnt++]);
+			spin_cnt %= 4;
+			std::string filename = dir.file();
+			if (filename.size() < 9) continue;
+			if (filename.substr(filename.size() - 8) != ".torrent") continue;
+
+			filename = combine_path(argv[a], filename);
+			torrent_info ti(filename, ec);
+			if (ec)
+			{
+				fprintf(stderr, "failed %s: %s\n", filename.c_str(), ec.message().c_str());
+				continue;
+			}
+
+			// piece size
+			int piece_size = ti.piece_length();
+			piece_sizes[piece_size] += 1;
+
+			// creator
+			std::string creator = ti.creator();
+			if (creator.substr(0, 4) != "http") creator = creator.substr(0, creator.find_first_of('/'));
+			creators[creator] += 1;
+
+			// torrent size
+			boost::uint64_t torrent_size = ti.total_size();
+			torrent_sizes[torrent_size / (torrent_size_quantization*1024*1024)] += 1;
+
+			// tracker
+			std::vector<announce_entry> const& tr = ti.trackers();
+			for (std::vector<announce_entry>::const_iterator i = tr.begin()
+				, end(tr.end()); i != end; ++i)
+			{
+				std::string t = i->url;
+				if (t.size() > 5 && t.substr(0, 6) == "dht://") t = "dht://xxxxx";
+				trackers[t] += 1;
+			}
+
+			++num_torrents;
 		}
-
-		// piece size
-		int piece_size = ti.piece_length();
-		piece_sizes[piece_size] += 1;
-
-		// creator
-		std::string creator = ti.creator();
-		if (creator.substr(0, 4) != "http") creator = creator.substr(0, creator.find_first_of('/'));
-		creators[creator] += 1;
-
-		// torrent size
-		boost::uint64_t torrent_size = ti.total_size();
-		torrent_sizes[torrent_size / (torrent_size_quantization*1024*1024)] += 1;
-
-		// tracker
-		std::vector<announce_entry> const& tr = ti.trackers();
-		for (std::vector<announce_entry>::const_iterator i = tr.begin()
-			, end(tr.end()); i != end; ++i)
-		{
-			std::string t = i->url;
-			if (t.size() > 5 && t.substr(0, 6) == "dht://") t = "dht://xxxxx";
-			trackers[t] += 1;
-		}
-
-		++num_torrents;
 	}
 
 	printf("writing piece_size.dat\n");

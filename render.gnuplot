@@ -7,6 +7,7 @@ set xtic 2
 set logscale x
 set key off
 set xrange [16:8192]
+set grid ytics
 plot "piece_size.dat" using 1:2 title "piece size" with steps
 
 set terminal postscript
@@ -20,7 +21,8 @@ set ylabel "torrents (%)"
 set xlabel "torrent size in MiB"
 set logscale x
 set xtic auto
-set xrange [10:*]
+set xrange [10:100000]
+set grid mxtics xtics ytics
 plot "size.dat" using 1:2 title "torrent size" with lines
 
 set terminal postscript
