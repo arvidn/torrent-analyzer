@@ -30,23 +30,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <boost/filesystem.hpp>
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/announce_entry.hpp"
 #include "libtorrent/file.hpp"
 #include <map>
 #include <list>
 #include <string>
+#include <cstdint>
+#include <cinttypes>
 
-enum { torrent_size_quantization = 5 };
+int const torrent_size_quantization = 5;
+int const piece_count_quantization = 100;
 
 int main(int argc, char const* argv[])
 {
-	using libtorrent::directory;
 	using libtorrent::torrent_info;
 	using libtorrent::error_code;
-	using libtorrent::combine_path;
 	using libtorrent::announce_entry;
 
 	std::map<int, int> piece_sizes;
+	std::map<int, int> piece_counts;
 	std::map<boost::uint64_t, int> torrent_sizes;
 	std::map<std::string, int> creators;
 	std::map<std::string, int> trackers;
@@ -62,20 +66,20 @@ int main(int argc, char const* argv[])
 	int spin_cnt = 0;
 	char const* spinner = "/-\\|";
 
-	for (int a = 1; a < argc; ++a)
+	namespace fs = boost::filesystem;
+
+	error_code ec;
+	for (fs::recursive_directory_iterator it(argv[1]), endit;
+		it != endit; ++it)
 	{
-		error_code ec;
-		directory dir(argv[a], ec);
-		for (; !ec && !dir.done(); dir.next(ec))
+		if (!fs::is_directory(it->path()))
 		{
 			fprintf(stderr, "\r%c", spinner[spin_cnt++]);
 			spin_cnt %= 4;
-			std::string filename = dir.file();
-			if (filename.size() < 9) continue;
-			if (filename.substr(filename.size() - 8) != ".torrent") continue;
+			auto filename = it->path();
+			if (extension(filename) != ".torrent") continue;
 
-			filename = combine_path(argv[a], filename);
-			torrent_info ti(filename, ec);
+			torrent_info ti(filename.native(), ec);
 			if (ec)
 			{
 				fprintf(stderr, "failed %s: %s\n", filename.c_str(), ec.message().c_str());
@@ -83,8 +87,11 @@ int main(int argc, char const* argv[])
 			}
 
 			// piece size
-			int piece_size = ti.piece_length();
+			int const piece_size = ti.piece_length();
 			piece_sizes[piece_size] += 1;
+
+			int const num_pieces = ti.num_pieces();
+			piece_counts[num_pieces / piece_count_quantization] += 1;
 
 			// creator
 			std::string creator = ti.creator();
@@ -117,6 +124,18 @@ int main(int argc, char const* argv[])
 	{
 		sum += i->second;
 		fprintf(f, "%5d\t%-2.1f\n", i->first / 1024, sum * 100. / num_torrents);
+	}
+	fclose(f);
+
+	printf("writing piece_count.dat\n");
+	f = fopen("piece_count.dat", "w+");
+	sum = 0.0;
+	for (auto const e : piece_counts)
+	{
+		sum += e.second;
+		fprintf(f, "%5d\t%-4.4f\n"
+			, e.first * piece_count_quantization + (piece_count_quantization / 2)
+			, sum * 100. / num_torrents);
 	}
 	fclose(f);
 
