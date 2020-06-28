@@ -2,7 +2,7 @@ import modules ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 
-use-project /torrent : ../libtorrent ;
+use-project /torrent : ./libtorrent ;
 
 if $(BOOST_ROOT)
 {
@@ -14,5 +14,6 @@ exe torrent_analyzer : torrent_analyzer.cpp
 	<library>/torrent//torrent
 	<library>/boost//filesystem
 	: <link>static
+	<cxxstd>14
 	;
 
