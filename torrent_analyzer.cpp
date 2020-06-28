@@ -128,10 +128,9 @@ int main(int argc, char const* argv[])
 
 			// tracker
 			std::vector<announce_entry> const& tr = ti.trackers();
-			for (std::vector<announce_entry>::const_iterator i = tr.begin()
-				, end(tr.end()); i != end; ++i)
+			for (auto const& ae : tr)
 			{
-				std::string t = i->url;
+				std::string t = ae.url;
 				if (t.size() > 5 && t.substr(0, 6) == "dht://") t = "dht://xxxxx";
 				trackers[t] += 1;
 			}
@@ -143,11 +142,10 @@ int main(int argc, char const* argv[])
 	printf("writing piece_size.dat\n");
 	FILE* f = fopen("piece_size.dat", "w+");
 	double sum = 0.0;
-	for (std::map<int, int>::iterator i = piece_sizes.begin();
-		i != piece_sizes.end(); ++i)
+	for (auto const& s : piece_sizes)
 	{
-		sum += i->second;
-		fprintf(f, "%5d\t%-2.1f\n", i->first / 1024, sum * 100. / num_torrents);
+		sum += s.second;
+		fprintf(f, "%5d\t%-2.1f\n", s.first / 1024, sum * 100. / num_torrents);
 	}
 	fclose(f);
 
@@ -166,12 +164,11 @@ int main(int argc, char const* argv[])
 	printf("writing size.dat\n");
 	f = fopen("size.dat", "w+");
 	sum = 0.0;
-	for (std::map<boost::uint64_t, int>::iterator i = torrent_sizes.begin();
-		i != torrent_sizes.end(); ++i)
+	for (auto const& s : torrent_sizes)
 	{
-		sum += i->second;
+		sum += s.second;
 		fprintf(f, "%" PRId64 "\t%-4.4f\n"
-			, i->first * torrent_size_quantization + (torrent_size_quantization / 2)
+			, s.first * torrent_size_quantization + (torrent_size_quantization / 2)
 			, sum * 100. / num_torrents);
 	}
 	fclose(f);
@@ -179,29 +176,26 @@ int main(int argc, char const* argv[])
 	printf("writing metadata_size.dat\n");
 	f = fopen("metadata_size.dat", "w+");
 	sum = 0.0;
-	for (std::map<int, int>::iterator i = metadata_sizes.begin();
-		i != metadata_sizes.end(); ++i)
+	for (auto const& s : metadata_sizes)
 	{
-		sum += i->second;
-		fprintf(f, "%d\t%-4.4f\n", i->first, sum * 100. / num_torrents);
+		sum += s.second;
+		fprintf(f, "%d\t%-4.4f\n", s.first, sum * 100. / num_torrents);
 	}
 	fclose(f);
 
 	printf("writing creator.txt\n");
 	f = fopen("creator.txt", "w+");
 	std::vector<std::pair<int, std::string> > sorted_list;
-	for (std::map<std::string, int>::iterator i = creators.begin();
-		i != creators.end(); ++i)
+	for (auto const& c : creators)
 	{
-		sorted_list.push_back(std::make_pair(i->second, i->first));
+		sorted_list.push_back(std::make_pair(c.second, c.first));
 	}
 
 	std::sort(sorted_list.rbegin(), sorted_list.rend());
 
-	for (std::vector<std::pair<int, std::string> >::iterator i = sorted_list.begin();
-		i != sorted_list.end(); ++i)
+	for (auto const& i : sorted_list)
 	{
-		fprintf(f, "%2.1f %%: %s\n", float(i->first) * 100.f / num_torrents, i->second.c_str());
+		fprintf(f, "%2.1f %%: %s\n", float(i.first) * 100.f / num_torrents, i.second.c_str());
 	}
 	fclose(f);
 
@@ -210,18 +204,16 @@ int main(int argc, char const* argv[])
 	f = fopen("tracker.txt", "w+");
 	sorted_list.clear();
 
-	for (std::map<std::string, int>::iterator i = trackers.begin();
-		i != trackers.end(); ++i)
+	for (auto const& t : trackers)
 	{
-		sorted_list.push_back(std::make_pair(i->second, i->first));
+		sorted_list.push_back(std::make_pair(t.second, t.first));
 	}
 
 	std::sort(sorted_list.rbegin(), sorted_list.rend());
 
-	for (std::vector<std::pair<int, std::string> >::iterator i = sorted_list.begin();
-		i != sorted_list.end(); ++i)
+	for (auto const i : sorted_list)
 	{
-		fprintf(f, "%-4.4f %%: %s\n", float(i->first) * 100.f / num_torrents, i->second.c_str());
+		fprintf(f, "%-4.4f %%: %s\n", float(i.first) * 100.f / num_torrents, i.second.c_str());
 	}
 	fclose(f);
 }
