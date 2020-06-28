@@ -40,8 +40,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <cinttypes>
 
+int const metadata_size_quantization = 1024;
 int const torrent_size_quantization = 5;
 int const piece_count_quantization = 100;
+
+bool load_file(std::string const& filename, std::vector<char>& v)
+{
+	std::fstream f(filename, std::ios_base::in | std::ios_base::binary);
+	f.seekg(0, std::ios_base::end);
+	auto const s = f.tellg();
+	f.seekg(0, std::ios_base::beg);
+	v.resize(static_cast<std::size_t>(s));
+	if (s == std::fstream::pos_type(0)) return !f.fail();
+	f.read(v.data(), v.size());
+	return !f.fail();
+}
 
 int main(int argc, char const* argv[])
 {
@@ -52,6 +65,7 @@ int main(int argc, char const* argv[])
 	std::map<int, int> piece_sizes;
 	std::map<int, int> piece_counts;
 	std::map<boost::uint64_t, int> torrent_sizes;
+	std::map<int, int> metadata_sizes;
 	std::map<std::string, int> creators;
 	std::map<std::string, int> trackers;
 
@@ -68,6 +82,8 @@ int main(int argc, char const* argv[])
 
 	namespace fs = boost::filesystem;
 
+	std::vector<char> buffer;
+
 	error_code ec;
 	for (fs::recursive_directory_iterator it(argv[1]), endit;
 		it != endit; ++it)
@@ -79,12 +95,20 @@ int main(int argc, char const* argv[])
 			auto filename = it->path();
 			if (extension(filename) != ".torrent") continue;
 
-			torrent_info ti(filename.native(), ec);
+			if (!load_file(filename.native(), buffer))
+			{
+				fprintf(stderr, "failed to load %s\n", filename.c_str());
+				continue;
+			}
+
+			torrent_info ti(buffer, ec, lt::from_span);
 			if (ec)
 			{
 				fprintf(stderr, "failed %s: %s\n", filename.c_str(), ec.message().c_str());
 				continue;
 			}
+
+			metadata_sizes[buffer.size() / metadata_size_quantization] += 1;
 
 			// piece size
 			int const piece_size = ti.piece_length();
@@ -149,6 +173,17 @@ int main(int argc, char const* argv[])
 		fprintf(f, "%" PRId64 "\t%-4.4f\n"
 			, i->first * torrent_size_quantization + (torrent_size_quantization / 2)
 			, sum * 100. / num_torrents);
+	}
+	fclose(f);
+
+	printf("writing metadata_size.dat\n");
+	f = fopen("metadata_size.dat", "w+");
+	sum = 0.0;
+	for (std::map<int, int>::iterator i = metadata_sizes.begin();
+		i != metadata_sizes.end(); ++i)
+	{
+		sum += i->second;
+		fprintf(f, "%d\t%-4.4f\n", i->first, sum * 100. / num_torrents);
 	}
 	fclose(f);
 
